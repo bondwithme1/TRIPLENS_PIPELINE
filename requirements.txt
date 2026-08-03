@@ -1,0 +1,6 @@
+requests
+boto3
+snowflake-connector-python[pandas]
+pandas
+python-dotenv
+numpy
