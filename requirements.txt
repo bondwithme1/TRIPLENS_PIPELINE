@@ -4,3 +4,4 @@ snowflake-connector-python[pandas]
 pandas
 python-dotenv
 numpy
+dbt-snowflake

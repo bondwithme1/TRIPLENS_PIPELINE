@@ -1,0 +1,13 @@
+dbt_project:
+  target: dev
+  outputs:
+    dev:
+      type: snowflake
+      account: LBOIULC-JR72860
+      user: ABIODUN
+      password: Matric27000000
+      role: ACCOUNTADMIN
+      warehouse: TRIPLENS_WH
+      database: TRIPLENS_DB
+      schema: STAGING
+      threads: 4
