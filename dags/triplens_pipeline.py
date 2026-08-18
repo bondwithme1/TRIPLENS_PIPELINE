@@ -14,43 +14,26 @@ def triplens_pipeline():
 
     @task
     def extract():
-        import requests
-        import json
-        import boto3
-        from datetime import datetime as dt
-
-        response = requests.get("https://restcountries.com/v3.1/all")
-        data = response.json()
-        print(f"Fetched {len(data)} countries")
-
-        s3 = boto3.client("s3",
-            endpoint_url="http://host.docker.internal:9000",
-            aws_access_key_id=os.getenv("MINIO_ACCESS_KEY"),
-            aws_secret_access_key=os.getenv("MINIO_SECRET_KEY"))
-
-        timestamp = dt.now().strftime("%Y%m%d_%H%M%S")
-        key = f"countries/countries_{timestamp}.json"
-        s3.put_object(
-            Bucket=os.getenv("MINIO_BUCKET"),
-            Key=key,
-            Body=json.dumps(data))
-        print(f"Uploaded to MinIO: {key}")
-        return key
+        print("Using existing data from S3")
+        return "countries_20260721_024708.json"
 
     @task
-    def load(minio_key: str):
+    def load(s3_key: str):
         import json
         import boto3
         import snowflake.connector
 
         s3 = boto3.client("s3",
-            endpoint_url="http://host.docker.internal:9000",
-            aws_access_key_id=os.getenv("MINIO_ACCESS_KEY"),
-            aws_secret_access_key=os.getenv("MINIO_SECRET_KEY"))
+                          aws_access_key_id=os.getenv("AWS_ACCESS_KEY_ID"),
+                          aws_secret_access_key=os.getenv(
+                              "AWS_SECRET_ACCESS_KEY"),
+                          region_name="eu-west-2")
 
-        response = s3.get_object(Bucket=os.getenv("MINIO_BUCKET"), Key=minio_key)
+        response = s3.get_object(
+            Bucket="triplens-raw-s3",
+            Key=s3_key)
         data = json.loads(response["Body"].read().decode("utf-8"))
-        print(f"Read {len(data)} countries from MinIO")
+        print(f"Read {len(data)} countries from S3")
 
         conn = snowflake.connector.connect(
             user=os.getenv("SNOWFLAKE_USER"),
@@ -89,8 +72,8 @@ def triplens_pipeline():
             raise Exception(f"DBT run failed:\n{result.stderr}")
         print("DBT transformation complete")
 
-    minio_key = extract()
-    load_task = load(minio_key)
+    s3_key = extract()
+    load_task = load(s3_key)
     transform_task = transform()
     load_task >> transform_task
 

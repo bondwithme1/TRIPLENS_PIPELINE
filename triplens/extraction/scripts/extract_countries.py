@@ -59,5 +59,3 @@ if __name__ == "__main__":
     data = extract_countries()
     filename, timestamp = save_locally(data)
     upload_to_minio(filename, timestamp)
-    
-
